@@ -79,14 +79,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             });
 
             println!(
-                // "Valid code was found in the project. Please delete it or update the comment so that it is not valid python."
                 "Valid code was found in the project. Please update the comment so that it is not valid python or delete it."
             );
         }
         println!(
             "{} files checked in {:?}",
             n_files,
-            start.duration_since(time::Instant::now())
+            time::Instant::now() - start
         );
         if !valid_code.is_empty() {
             exit(1);

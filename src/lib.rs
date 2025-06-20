@@ -2,6 +2,62 @@ use std::fs;
 
 use tree_sitter::{Node, Parser};
 
+pub fn get_modules(path: Vec<String>) -> Option<Vec<String>> {
+    let mut rtn: Vec<String> = Vec::new();
+    for p in path.iter() {
+        if let Ok(exist) = fs::exists(&p) {
+            if exist {
+                let mut dirs = Vec::new();
+                let met = fs::metadata(&p).unwrap();
+
+                // if dir return py contents
+                if met.is_dir() {
+                    if let Ok(dir) = fs::read_dir(&p) {
+                        // loop through dir contents
+                        // py files stay in list, dirs are moved to dirs vector for later expansion
+                        let mut dir: Vec<String> = dir
+                            .filter_map(|e| {
+                                if let Ok(f) = e {
+                                    if let Some(ext) = f.path().extension() {
+                                        if ext == "py" {
+                                            return Some(String::from(f.path().to_str().unwrap()));
+                                        }
+                                    }
+                                    // if "f" is a dir, read it's contents later
+                                    if f.path().is_dir() {
+                                        dirs.push(String::from(f.path().to_str().unwrap()));
+                                    }
+                                }
+                                None
+                            })
+                            .collect();
+                        rtn.append(&mut dir);
+
+                        // if there are dirs in the path, read their contents
+                        // recursively call this func to get contents
+                        // TODO
+                        if dirs.len() > 0 {
+                            if let Some(mods) = get_modules(dirs) {
+                                let mut mods = mods;
+                                rtn.append(&mut mods);
+                            }
+                        }
+                    }
+
+                // if file, return vec of that file name
+                } else {
+                    rtn.push(p.to_string());
+                }
+            } else {
+                eprintln!("{} does not exist", p);
+                return None;
+            }
+        }
+    }
+
+    Some(rtn)
+}
+
 pub fn comment_has_valid_code(
     comment_node: Node,
     parser: &mut Parser,
@@ -59,62 +115,4 @@ fn is_not_allowable_comment(node: Node) -> bool {
         // anything else is illegal
         _ => true,
     }
-}
-
-// TODO this can be simplified
-// dirs are getting expanded the almost same way in two places
-pub fn get_modules(path: Vec<String>) -> Option<Vec<String>> {
-    let mut rtn: Vec<String> = Vec::new();
-    for p in path.iter() {
-        if let Ok(exist) = fs::exists(&p) {
-            if exist {
-                let mut dirs = Vec::new();
-                let met = fs::metadata(&p).unwrap();
-
-                // if dir return py contents
-                if met.is_dir() {
-                    if let Ok(dir) = fs::read_dir(&p) {
-                        // loop through dir contents
-                        // py files stay in list, dirs are moved to dirs vector for later expansion
-                        let mut abc: Vec<String> = dir
-                            .filter_map(|e| {
-                                if let Ok(f) = e {
-                                    if let Some(ext) = f.path().extension() {
-                                        if ext == "py" {
-                                            return Some(String::from(f.path().to_str().unwrap()));
-                                        }
-                                    }
-                                    // if "f" is a dir, read it's contents later
-                                    if f.path().is_dir() {
-                                        dirs.push(String::from(f.path().to_str().unwrap()));
-                                    }
-                                }
-                                None
-                            })
-                            .collect();
-                        rtn.append(&mut abc);
-
-                        // if there are dirs in the path, read their contents
-                        // recursively call this func to get contents
-                        // TODO
-                        if dirs.len() > 0 {
-                            if let Some(mods) = get_modules(dirs) {
-                                let mut mods = mods;
-                                rtn.append(&mut mods);
-                            }
-                        }
-                    }
-
-                // if file, return vec of that file name
-                } else {
-                    rtn.push(p.to_string());
-                }
-            } else {
-                eprintln!("{} does not exist", p);
-                return None;
-            }
-        }
-    }
-
-    Some(rtn)
 }

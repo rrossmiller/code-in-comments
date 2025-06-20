@@ -11,8 +11,12 @@ use tree_sitter::{Node, Parser};
 use tree_sitter_python;
 /*
 * TODO
-* check if removing a comment from the end of a line makes is valid code
+* different modes
+*   - verbose: print sexp in msg
+*   - strict (default) current setup
 */
+
+const VERBOSE: bool = false;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = Parser::new();
     parser
@@ -24,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Vec::from(args);
 
     if args.len() < 1 {
-        eprintln!("usage: ./exe <path to src>");
+        println!("usage: ./comment_checker <path to src>");
         exit(1);
     }
 
@@ -32,19 +36,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(files) = comment_checker::get_modules(args) {
         let start = time::Instant::now();
         let mut valid_code: HashMap<String, Vec<String>> = HashMap::new();
-        // filter out directories
-        let files: Vec<String> = files
-            .iter()
-            .filter_map(|p| {
-                if let Ok(m) = fs::metadata(p) {
-                    if m.is_file() {
-                        return Some(p.clone());
-                    }
-                }
-                None
-            })
-            .collect();
         let n_files = files.len();
+
+        // loop through all the files and look for code in the comments
         for f in files {
             let source_code =
                 read_source_file(&f).expect(format!("Issue reading {}\n", f).as_str());
@@ -61,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         node,
                         &mut parser,
                         &source_code,
-                        true,
+                        VERBOSE,
                     ) {
                         if let Some(v) = valid_code.get_mut(&f) {
                             v.push(msg);
@@ -76,11 +70,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         // if valid code in comments was found
-        // print an error message and exit
+        // print info about what file and line the illegal comment is in
         if !valid_code.is_empty() {
-            valid_code.iter().for_each(|(k, v)| {
-                println!("{}", k);
-                v.iter().rev().for_each(|e| println!("{}", e));
+            valid_code.iter().for_each(|(file_name, messages)| {
+                println!("{}", file_name);
+                messages.iter().rev().for_each(|e| println!("{}", e));
                 println!();
             });
 

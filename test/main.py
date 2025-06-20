@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 rl = RateLimiter(600)
 
-
 async def f(i, bar=None, worker=None):
     async with httpx.AsyncClient() as client:
         return await client.get("http://localhost:3000", params={"i": i})
@@ -44,8 +43,7 @@ async def run(n_tasks, n_workers=10, worker_bars=True):
         if r[0] is not None:
             r[0].close()
         for x in r[1]:
-            results.append(x.json()['id'])
-
+            results.append(x.json()["id"])
 
     print(results)
 

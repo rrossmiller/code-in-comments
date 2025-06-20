@@ -1,0 +1,10 @@
+[package]
+name = "comment_checker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tree-sitter = "0.24"
+# tree-sitter-python = { version = "0.23.6", path = "../tree-sitter-python" }
+tree-sitter-python = { version = "0.23.6"}
+tree-sitter-rust = "0.23"

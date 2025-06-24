@@ -15,7 +15,7 @@ pub fn get_modules(path: Vec<String>) -> Option<Vec<String>> {
                     if let Ok(dir) = fs::read_dir(&p) {
                         // loop through dir contents
                         // py files stay in list, dirs are moved to dirs vector for later expansion
-                        let mut dir: Vec<String> = dir
+                        let mut dir_contents: Vec<String> = dir
                             .filter_map(|e| {
                                 if let Ok(f) = e {
                                     if let Some(ext) = f.path().extension() {
@@ -24,14 +24,14 @@ pub fn get_modules(path: Vec<String>) -> Option<Vec<String>> {
                                         }
                                     }
                                     // if "f" is a dir, read it's contents later
-                                    if f.path().is_dir() {
+                                    else if f.path().is_dir() {
                                         dirs.push(String::from(f.path().to_str().unwrap()));
                                     }
                                 }
                                 None
                             })
                             .collect();
-                        rtn.append(&mut dir);
+                        rtn.append(&mut dir_contents);
 
                         // if there are dirs in the path, read their contents
                         // recursively call this func to get contents

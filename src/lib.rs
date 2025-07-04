@@ -4,19 +4,7 @@ use tree_sitter::{Node, Parser};
 
 pub fn get_modules(path: Vec<String>, ignore: &Option<Vec<String>>) -> Option<Vec<String>> {
     let mut rtn: Vec<String> = Vec::new();
-    let mut paths: Vec<&str> = path.iter().map(|e| e.as_str()).collect();
-    if let Some(i) = ignore {
-        paths = paths
-            .iter()
-            .filter_map(|e| {
-                if i.contains(&e.to_string()) {
-                    return None;
-                }
-                Some(*e)
-            })
-            .collect();
-    }
-    for p in paths.iter() {
+    for p in path.iter() {
         if let Ok(exist) = fs::exists(&p) {
             if exist {
                 let mut dirs = Vec::new();
@@ -67,6 +55,19 @@ pub fn get_modules(path: Vec<String>, ignore: &Option<Vec<String>>) -> Option<Ve
         }
     }
 
+    // filter out ignored paths
+    if let Some(i) = ignore {
+        rtn = rtn
+            .iter()
+            .filter_map(|e| {
+                if i.contains(e) {
+                    return None;
+                }
+                Some(e.to_string())
+            })
+            .collect();
+    }
+
     Some(rtn)
 }
 
@@ -96,7 +97,7 @@ pub fn comment_has_valid_code(
                     st_row,
                     st.column,
                     comment_root.to_sexp(),
-                    comment_body,
+                    comment_body.trim(),
                 ));
             }
             return Some(format!(
@@ -124,9 +125,13 @@ fn is_not_allowable_comment(node: Node) -> bool {
         | "(module (expression_statement (keyword_identifier)))"
         | "(module (expression_statement (integer)))"
         // | "(module (expression_statement (string (string_start) (string_content) (string_end))))" 
+
+        // things like "pyright: ignore"
+        |"(module (expression_statement (assignment left: (identifier) type: (type (identifier)))))" 
+
         => false,
 
-        // anything else is illegal
+        // most anything else is illegal
         _ => true,
     }
 }

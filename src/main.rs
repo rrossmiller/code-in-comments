@@ -1,21 +1,14 @@
 use clap::Parser as cliParser;
 
-use std::{
-    collections::{HashMap, VecDeque},
-    env::{self},
-    fs, io,
-    process::exit,
-    time,
-};
+use std::{collections::HashMap, fs, io, process::exit, time};
 
 use comment_checker;
 use tree_sitter::{Node, Parser};
 use tree_sitter_python;
 /*
 * TODO
-* ignore path
+* need to ignore more nodes
 * different modes
-*   - verbose: print sexp in msg
 *   - strict (default) current setup
 */
 

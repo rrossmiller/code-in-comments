@@ -2,9 +2,21 @@ use std::fs;
 
 use tree_sitter::{Node, Parser};
 
-pub fn get_modules(path: Vec<String>) -> Option<Vec<String>> {
+pub fn get_modules(path: Vec<String>, ignore: &Option<Vec<String>>) -> Option<Vec<String>> {
     let mut rtn: Vec<String> = Vec::new();
-    for p in path.iter() {
+    let mut paths: Vec<&str> = path.iter().map(|e| e.as_str()).collect();
+    if let Some(i) = ignore {
+        paths = paths
+            .iter()
+            .filter_map(|e| {
+                if i.contains(&e.to_string()) {
+                    return None;
+                }
+                Some(*e)
+            })
+            .collect();
+    }
+    for p in paths.iter() {
         if let Ok(exist) = fs::exists(&p) {
             if exist {
                 let mut dirs = Vec::new();
@@ -37,7 +49,7 @@ pub fn get_modules(path: Vec<String>) -> Option<Vec<String>> {
                         // recursively call this func to get contents
                         // TODO
                         if dirs.len() > 0 {
-                            if let Some(mods) = get_modules(dirs) {
+                            if let Some(mods) = get_modules(dirs, &ignore) {
                                 let mut mods = mods;
                                 rtn.append(&mut mods);
                             }
@@ -89,7 +101,9 @@ pub fn comment_has_valid_code(
             }
             return Some(format!(
                 "({}, {}):\n  \"{}\"",
-                st_row, st.column, comment_body,
+                st_row,
+                st.column,
+                comment_body.trim(),
             ));
         }
     }

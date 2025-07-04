@@ -1,3 +1,5 @@
+use clap::Parser as cliParser;
+
 use std::{
     collections::{HashMap, VecDeque},
     env::{self},
@@ -11,29 +13,39 @@ use tree_sitter::{Node, Parser};
 use tree_sitter_python;
 /*
 * TODO
+* ignore path
 * different modes
 *   - verbose: print sexp in msg
 *   - strict (default) current setup
 */
 
-const VERBOSE: bool = false;
+#[derive(cliParser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    /// paths to python projects or files
+    #[arg(required = true)]
+    args: Vec<String>,
+
+    /// Path to ignore
+    #[arg(short, long, num_args=1.., value_delimiter = ' ')]
+    ignore: Option<Vec<String>>,
+
+    /// Increase output verbosity
+    #[arg(short, long)]
+    verbose: bool,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Get the program options
+    let cli = Cli::parse();
+
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_python::LANGUAGE.into())
         .expect("Error loading Python grammar");
 
-    let mut args: VecDeque<String> = env::args().collect();
-    args.pop_front();
-    let args = Vec::from(args);
-
-    if args.len() < 1 {
-        println!("usage: ./comment_checker <path to src>");
-        exit(1);
-    }
-
     // if there are files, iterate over them
-    if let Some(files) = comment_checker::get_modules(args) {
+    if let Some(files) = comment_checker::get_modules(cli.args, &cli.ignore) {
         let start = time::Instant::now();
         let mut valid_code: HashMap<String, Vec<String>> = HashMap::new();
         let n_files = files.len();
@@ -55,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         node,
                         &mut parser,
                         &source_code,
-                        VERBOSE,
+                        cli.verbose,
                     ) {
                         if let Some(v) = valid_code.get_mut(&f) {
                             v.push(msg);
